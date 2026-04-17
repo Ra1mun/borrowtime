@@ -1,0 +1,797 @@
+basePath: /api/v1
+definitions:
+  usecase.TokenPair:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@borrowtime.local
+    name: BorrowTime Team
+  description: Сервис безопасной одноразовой передачи конфиденциальных файлов.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: BorrowTime API
+  version: "1.0"
+paths:
+  /admin/settings:
+    get:
+      description: Возвращает текущие системные настройки. Только для администраторов.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить глобальные настройки
+      tags:
+      - admin
+    put:
+      consumes:
+      - application/json
+      description: Изменяет системные ограничения. Только для администраторов.
+      parameters:
+      - description: 'Настройки: max_file_size_mb, max_retention_days, default_retention_hours,
+          default_max_downloads'
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Обновить глобальные настройки
+      tags:
+      - admin
+  /admin/stats:
+    get:
+      description: 'Возвращает агрегированные показатели: активные передачи, объём
+        хранилища, инциденты безопасности. Только для администраторов.'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: active_transfers, total_storage_bytes, security_incidents_today
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Статистика системы
+      tags:
+      - admin
+  /audit:
+    get:
+      description: Возвращает отфильтрованный журнал аудита. Администратор видит все
+        события, пользователь — только свои.
+      parameters:
+      - description: Фильтр по ID передачи
+        in: query
+        name: transfer_id
+        type: string
+      - description: Тип события (transfer_created, file_downloaded, …)
+        in: query
+        name: event_type
+        type: string
+      - description: Начало периода (RFC3339)
+        in: query
+        name: from
+        type: string
+      - description: Конец периода (RFC3339)
+        in: query
+        name: to
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: events, total
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Список событий аудита
+      tags:
+      - audit
+  /audit/export:
+    get:
+      description: Скачивает все записи аудита в формате CSV. Доступно только администраторам.
+      parameters:
+      - description: Фильтр по ID передачи
+        in: query
+        name: transfer_id
+        type: string
+      - description: Тип события
+        in: query
+        name: event_type
+        type: string
+      - description: Начало периода (RFC3339)
+        in: query
+        name: from
+        type: string
+      - description: Конец периода (RFC3339)
+        in: query
+        name: to
+        type: string
+      produces:
+      - text/csv
+      responses:
+        "200":
+          description: CSV-файл
+          schema:
+            type: file
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Экспорт журнала аудита в CSV
+      tags:
+      - audit
+  /auth/2fa/confirm:
+    post:
+      consumes:
+      - application/json
+      description: Принимает TOTP-код, проверяет его и активирует двухфакторную аутентификацию
+        для аккаунта. Требует аутентификации.
+      parameters:
+      - description: code
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'status: enabled'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: 2fa already enabled
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Подтверждение и включение 2FA
+      tags:
+      - auth
+  /auth/2fa/disable:
+    post:
+      consumes:
+      - application/json
+      description: Принимает TOTP-код и отключает двухфакторную аутентификацию. Требует
+        аутентификации.
+      parameters:
+      - description: code
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'status: disabled'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: 2fa not enabled
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отключение 2FA
+      tags:
+      - auth
+  /auth/2fa/setup:
+    post:
+      description: Генерирует TOTP-секрет и возвращает URI для QR-кода. 2FA включается
+        только после подтверждения кодом (POST /auth/2fa/confirm). Требует аутентификации.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: secret, provision_url
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Начало настройки 2FA
+      tags:
+      - auth
+  /auth/2fa/verify:
+    post:
+      consumes:
+      - application/json
+      description: Принимает partial_jwt и TOTP-код, возвращает финальную пару токенов
+        (FR-2, шаги 6.3–6.5 UC-01). Допускается 3 попытки на один partial_jwt.
+      parameters:
+      - description: partial_jwt, code
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecase.TokenPair'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: invalid code or expired partial_jwt
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Верификация кода 2FA
+      tags:
+      - auth
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Аутентифицирует пользователя по email и паролю. Если 2FA включена
+        — возвращает partial_jwt и статус 2fa_required (FR-2). При ≥5 неверных попытках
+        аккаунт блокируется на 15 минут.
+      parameters:
+      - description: email, password
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: access_token + refresh_token ИЛИ partial_jwt + status=2fa_required
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "423":
+          description: account locked
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Вход в систему
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Инвалидирует refresh_token.
+      parameters:
+      - description: refresh_token
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: no content
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Выход из системы
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: 'Принимает refresh_token, возвращает новую пару access + refresh.
+        Ротация: старый токен удаляется.'
+      parameters:
+      - description: refresh_token
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/usecase.TokenPair'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Обновление токенов
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Создаёт аккаунт с email и паролем. Пароль хешируется Argon2id (FR-28).
+        Минимальная длина пароля — 8 символов.
+      parameters:
+      - description: email, password
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: id, email
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: email already taken
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Регистрация нового пользователя
+      tags:
+      - auth
+  /s/{token}:
+    get:
+      description: Публичный endpoint для получения зашифрованного файла по одноразовому
+        токену.
+      parameters:
+      - description: Одноразовый токен доступа
+        in: path
+        name: token
+        required: true
+        type: string
+      - description: Email получателя (если требуется политикой)
+        in: query
+        name: email
+        type: string
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: Зашифрованный файл
+          headers:
+            X-Encryption-Alg:
+              description: Алгоритм шифрования
+              type: string
+            X-Encryption-IV:
+              description: Initialization Vector (base64)
+              type: string
+            X-Encryption-Tag:
+              description: Auth tag (base64)
+              type: string
+          schema:
+            type: file
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "410":
+          description: Gone
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Скачать файл по токену
+      tags:
+      - transfers
+  /transfers:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Загружает зашифрованный файл и создаёт ссылку для получателя. Требует
+        аутентификации.
+      parameters:
+      - description: Зашифрованный файл
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: Срок действия ссылки (RFC3339)
+        in: formData
+        name: policy_expires_at
+        type: string
+      - description: Максимальное количество скачиваний (0 — без ограничений)
+        in: formData
+        name: policy_max_downloads
+        type: integer
+      - description: Требовать аутентификацию получателя
+        in: formData
+        name: policy_require_auth
+        type: boolean
+      - description: Разрешённые email-адреса (можно передать несколько раз)
+        in: formData
+        name: policy_allowed_emails
+        type: string
+      - description: Алгоритм шифрования (AES-256-GCM)
+        in: formData
+        name: encryption_alg
+        type: string
+      - description: Initialization Vector (base64)
+        in: formData
+        name: encryption_iv
+        type: string
+      - description: Auth tag (base64)
+        in: formData
+        name: encryption_tag
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: transfer_id, share_url, access_token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "413":
+          description: Request Entity Too Large
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Создать передачу файла
+      tags:
+      - transfers
+  /transfers/{id}:
+    delete:
+      description: Досрочно блокирует ссылку. Доступно только владельцу передачи.
+      parameters:
+      - description: UUID передачи
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'status: revoked'
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Conflict
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Отозвать доступ к передаче
+      tags:
+      - transfers
+    get:
+      description: Возвращает метаданные передачи. Доступно только владельцу.
+      parameters:
+      - description: UUID передачи
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Получить детали передачи
+      tags:
+      - transfers
+securityDefinitions:
+  BearerAuth:
+    description: 'Введите токен в формате: Bearer {token}'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

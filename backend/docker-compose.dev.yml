@@ -1,0 +1,26 @@
+# Оверрайд для локальной разработки:
+# - app не билдится (запускаем go run вручную)
+# - только инфраструктурные сервисы
+#
+# Использование:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+services:
+  app:
+    # Отключаем контейнер приложения — запускаем локально через:
+    #   go run ./cmd/server
+    profiles:
+      - disabled
+
+  postgres:
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  minio:
+    ports:
+      - "9000:9000"
+      - "9001:9001"
