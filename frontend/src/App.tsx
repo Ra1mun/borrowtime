@@ -6,8 +6,10 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import TransferPage from './pages/TransferPage'
 import ReceiverPage from './pages/ReceiverPage'
+import HistoryPage from './pages/HistoryPage'
 import UsersPage from './pages/UsersPage'
 import AuditPage from './pages/AuditPage'
+import AdminSettingsPage from './pages/AdminSettingsPage'
 import TwoFAPage from './pages/TwoFAPage'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import type { ReactNode } from 'react'
@@ -62,6 +64,15 @@ function AppRoutes() {
         />
 
         <Route
+          path="/history"
+          element={
+            <ProtectedRoute>
+              <HistoryPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/control"
           element={
             <ProtectedRoute adminOnly>
@@ -75,6 +86,15 @@ function AppRoutes() {
           element={
             <ProtectedRoute adminOnly>
               <AuditPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute adminOnly>
+              <AdminSettingsPage />
             </ProtectedRoute>
           }
         />

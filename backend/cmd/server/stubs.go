@@ -10,8 +10,6 @@ import (
 	"github.com/borrowtime/server/internal/usecase"
 )
 
-// --- Stub: Storage (MinIO/S3) ---
-
 type stubStorage struct{}
 
 func (s *stubStorage) Upload(_ context.Context, key string, _ io.Reader, _ int64, _ string) (string, error) {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { apiListAudit } from "../api/client"
+import { apiListAudit, apiExportAuditCsv } from "../api/client"
 import type { AuditEvent } from "../api/client"
 
 export default function AuditPage() {
@@ -22,9 +22,20 @@ export default function AuditPage() {
     return success ? "statusDot--success" : "statusDot--danger"
   }
 
+  const handleExport = () => {
+    apiExportAuditCsv().catch((err) => {
+      setError(err instanceof Error ? err.message : "Ошибка экспорта")
+    })
+  }
+
   return (
     <section className="appPage appPage--wide">
-      <h1 className="auditTitle">Журнал аудита</h1>
+      <div className="auditTitleRow">
+        <h1 className="auditTitle">Журнал аудита</h1>
+        <button className="secondaryBtn" type="button" onClick={handleExport}>
+          Экспорт CSV
+        </button>
+      </div>
 
       {error && <div className="errorText">{error}</div>}
 

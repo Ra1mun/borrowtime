@@ -53,8 +53,6 @@ func realIP(r *http.Request) string {
 }
 
 // JWTMiddleware проверяет Bearer-токен и кладёт claims в контекст запроса.
-// Если токен отсутствует или невалиден — запрос продолжается без аутентификации
-// (защищённые маршруты сами проверяют userIDFromCtx).
 func JWTMiddleware(authUC *usecase.AuthUseCase) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -89,6 +87,7 @@ func CORSMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Accept, Authorization, Content-Type")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		w.Header().Set("Access-Control-Expose-Headers", "Content-Disposition, Content-Length, X-Encryption-Alg, X-Encryption-IV, X-Encryption-Tag")
 		w.Header().Set("Access-Control-Max-Age", "86400")
 
 		if r.Method == http.MethodOptions {

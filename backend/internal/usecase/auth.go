@@ -21,7 +21,6 @@ import (
 	"github.com/borrowtime/server/internal/repository"
 )
 
-// --- константы политики безопасности ---
 const (
 	maxFailedAttempts = 5
 	lockDuration      = 15 * time.Minute
@@ -42,8 +41,8 @@ type RegisterInput struct {
 
 // LoginInput — входные данные для входа
 type LoginInput struct {
-	Email    string
-	Password string
+	Email     string
+	Password  string
 	IPAddress string
 	UserAgent string
 }
@@ -65,7 +64,7 @@ type Verify2FAInput struct {
 
 // TOTPSetupResult — данные для настройки 2FA
 type TOTPSetupResult struct {
-	Secret      string // base32-секрет для ввода вручную
+	Secret       string // base32-секрет для ввода вручную
 	ProvisionURL string // otpauth:// URL для QR-кода
 }
 
@@ -111,8 +110,7 @@ func (uc *AuthUseCase) GetUser(ctx context.Context, id string) (*domain.User, er
 	return uc.users.FindByID(ctx, id)
 }
 
-// Register — UC-01: шаги 1–4 (регистрация нового пользователя)
-// FR-1, FR-5, FR-6, FR-28
+// Register регистрация нового пользователя
 func (uc *AuthUseCase) Register(ctx context.Context, in RegisterInput) (*domain.User, error) {
 	if err := validateEmail(in.Email); err != nil {
 		return nil, err
@@ -144,8 +142,7 @@ func (uc *AuthUseCase) Register(ctx context.Context, in RegisterInput) (*domain.
 	return user, nil
 }
 
-// Login — UC-01: шаги 3–7
-// FR-5, FR-6, FR-17, FR-28, FR-34
+// Login авторизация пользователя
 func (uc *AuthUseCase) Login(ctx context.Context, in LoginInput) (*LoginResult, error) {
 	user, err := uc.users.FindByEmail(ctx, in.Email)
 	if err != nil {
@@ -153,24 +150,20 @@ func (uc *AuthUseCase) Login(ctx context.Context, in LoginInput) (*LoginResult, 
 		return nil, domain.ErrInvalidCredentials
 	}
 
-	// Проверка блокировки (5а)
 	if user.IsLocked() {
 		_ = uc.appendAudit(ctx, "", user.ID, domain.EventUnauthorized, in.IPAddress, in.UserAgent, false, "account locked")
 		return nil, domain.ErrAccountLocked
 	}
 
-	// Проверка пароля (FR-28)
 	match, err := argon2id.ComparePasswordAndHash(in.Password, user.PasswordHash)
 	if err != nil || !match {
 		return nil, uc.handleFailedLogin(ctx, user, in.IPAddress, in.UserAgent)
 	}
 
-	// Сброс счётчика после успешного входа
 	if user.FailedAttempts > 0 {
 		_ = uc.users.ResetLock(ctx, user.ID)
 	}
 
-	// 2FA включена → возвращаем partial_jwt (шаг 6.1–6.2)
 	if user.TOTPEnabled {
 		partialJWT, err := uc.issuePartialJWT(user)
 		if err != nil {
@@ -179,7 +172,6 @@ func (uc *AuthUseCase) Login(ctx context.Context, in LoginInput) (*LoginResult, 
 		return &LoginResult{TwoFANeeded: true, PartialJWT: partialJWT}, nil
 	}
 
-	// 2FA не настроена → сразу выдаём финальные токены (шаг 7)
 	tokens, err := uc.issueTokenPair(ctx, user)
 	if err != nil {
 		return nil, err
@@ -189,8 +181,7 @@ func (uc *AuthUseCase) Login(ctx context.Context, in LoginInput) (*LoginResult, 
 	return &LoginResult{Tokens: tokens}, nil
 }
 
-// Verify2FA — UC-01: шаги 6.3–6.5
-// FR-2
+// Verify2FA подтверждение входа через 2FA авторизацию
 func (uc *AuthUseCase) Verify2FA(ctx context.Context, in Verify2FAInput) (*TokenPair, error) {
 	claims, err := uc.parsePartialJWT(in.PartialJWT)
 	if err != nil {
@@ -326,8 +317,6 @@ func (uc *AuthUseCase) ValidateAccessJWT(tokenStr string) (*AuthClaims, error) {
 	return claims, nil
 }
 
-// --- internal helpers ---
-
 func (uc *AuthUseCase) handleFailedLogin(ctx context.Context, user *domain.User, ip, ua string) error {
 	newCount := user.FailedAttempts + 1
 	_ = uc.users.UpdateFailedAttempts(ctx, user.ID, newCount)
@@ -366,7 +355,6 @@ func (uc *AuthUseCase) issueTokenPair(ctx context.Context, user *domain.User) (*
 		return nil, fmt.Errorf("save refresh token: %w", err)
 	}
 
-	// Очищаем просроченные токены фоново
 	go func() {
 		_ = uc.users.DeleteExpiredRefreshTokens(context.Background(), user.ID)
 	}()
@@ -421,9 +409,6 @@ func (uc *AuthUseCase) appendAudit(ctx context.Context, transferID, ownerID stri
 	})
 }
 
-// --- validation ---
-
-
 func validateEmail(email string) error {
 	if len(email) < 3 || len(email) > 254 {
 		return fmt.Errorf("invalid email format")
@@ -443,8 +428,6 @@ func validatePassword(password string) error {
 	return nil
 }
 
-// --- crypto utils ---
-
 func generateToken(bytes int) (string, error) {
 	b := make([]byte, bytes)
 	if _, err := rand.Read(b); err != nil {
@@ -458,4 +441,3 @@ func hashToken(token string) string {
 	h := sha256.Sum256([]byte(token))
 	return fmt.Sprintf("%x", h)
 }
-

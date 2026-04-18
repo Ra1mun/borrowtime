@@ -34,6 +34,7 @@ import (
 	"github.com/borrowtime/server/internal/config"
 	"github.com/borrowtime/server/internal/handler"
 	"github.com/borrowtime/server/internal/postgres"
+	"github.com/borrowtime/server/internal/storage"
 	"github.com/borrowtime/server/internal/usecase"
 )
 
@@ -71,7 +72,12 @@ func main() {
 	statsProvider := postgres.NewStatsProvider(pool)
 	userRepo := postgres.NewUserRepo(pool)
 
-	storageProvider := &stubStorage{}
+	storageProvider, err := storage.NewMinIO(ctx, cfg.MinIO.Endpoint, cfg.MinIO.AccessKey, cfg.MinIO.SecretKey, cfg.MinIO.Bucket, cfg.MinIO.UseSSL)
+	if err != nil {
+		logger.Error("minio connection failed", "error", err)
+		os.Exit(1)
+	}
+	logger.Info("minio connected")
 
 	notifier := &stubNotifier{}
 
@@ -98,7 +104,6 @@ func main() {
 	r.Use(middleware.Timeout(30 * time.Second))
 
 	r.Route("/api/v1", func(r chi.Router) {
-		// JWT middleware — устанавливает userID/role в контекст если токен есть
 		r.Use(handler.JWTMiddleware(authUC))
 
 		authH := handler.NewAuthHandler(authUC)
@@ -122,7 +127,6 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	// Swagger UI — доступен по /swagger/index.html
 	r.Get("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL("/swagger/doc.json"),
 	))

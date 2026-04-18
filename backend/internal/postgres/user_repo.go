@@ -170,8 +170,6 @@ func (r *UserRepo) UpdateRole(ctx context.Context, id string, role domain.UserRo
 	return err
 }
 
-// --- Refresh tokens ---
-
 func (r *UserRepo) SaveRefreshToken(ctx context.Context, rt *domain.RefreshToken) error {
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, created_at)

@@ -47,7 +47,6 @@ func NewPool(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
 }
 
 // RunMigrations запускает все pending-миграции из встроенных SQL-файлов.
-// Безопасно вызывать при каждом старте сервера.
 func RunMigrations(dsn string, logger *slog.Logger) error {
 	src, err := iofs.New(migrationsFS, "migrations")
 	if err != nil {

@@ -1,7 +1,3 @@
-// UC-08: Управление глобальными настройками системы
-// Приоритет: Низкий
-// Актер: Администратор
-// FR: 22, 23
 package usecase
 
 import (
@@ -13,7 +9,7 @@ import (
 	"github.com/borrowtime/server/internal/repository"
 )
 
-// SystemStatsProvider — интерфейс сбора статистики (FR-23)
+// SystemStatsProvider — интерфейс сбора статистики
 type SystemStatsProvider interface {
 	// ActiveTransfersCount возвращает число активных передач
 	ActiveTransfersCount(ctx context.Context) (int64, error)
@@ -25,7 +21,6 @@ type SystemStatsProvider interface {
 	SecurityIncidentsCount(ctx context.Context, since time.Time) (int64, error)
 }
 
-// GlobalSettingsUseCase — UC-08
 type GlobalSettingsUseCase struct {
 	settings repository.SettingsRepository
 	stats    SystemStatsProvider
@@ -85,7 +80,7 @@ func (uc *GlobalSettingsUseCase) UpdateSettings(ctx context.Context, in UpdateSe
 	return s, nil
 }
 
-// GetStats возвращает текущую статистику системы (FR-23)
+// GetStats возвращает текущую статистику системы
 func (uc *GlobalSettingsUseCase) GetStats(ctx context.Context) (*SystemStats, error) {
 	active, err := uc.stats.ActiveTransfersCount(ctx)
 	if err != nil {

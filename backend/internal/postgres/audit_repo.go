@@ -19,7 +19,7 @@ func NewAuditRepo(pool *pgxpool.Pool) *AuditRepo {
 	return &AuditRepo{pool: pool}
 }
 
-// Append добавляет запись в журнал аудита (FR-17)
+// Append добавляет запись в журнал аудита
 func (r *AuditRepo) Append(ctx context.Context, log *domain.AuditLog) error {
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO audit_logs (
@@ -43,10 +43,8 @@ func (r *AuditRepo) Append(ctx context.Context, log *domain.AuditLog) error {
 	return nil
 }
 
-// List возвращает записи журнала по фильтру (UC-05, FR-18, FR-19)
-// Поддерживает фильтрацию по: ownerID, transferID, eventType, периоду дат.
+// List возвращает записи журнала по фильтру
 func (r *AuditRepo) List(ctx context.Context, filter domain.AuditFilter) ([]*domain.AuditLog, error) {
-	// Динамическое построение WHERE-условий
 	conditions := []string{"1=1"}
 	args := []any{}
 	argIdx := 1

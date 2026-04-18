@@ -31,15 +31,13 @@ type ExportInput struct {
 	Filter        domain.AuditFilter
 }
 
-// WriteCSV записывает журнал аудита в CSV-формат в указанный writer (FR-20).
-// Метод использует streaming: данные пишутся по мере получения из репозитория.
+// WriteCSV записывает журнал аудита в CSV-формат в указанный writer
 func (uc *ExportAuditUseCase) WriteCSV(ctx context.Context, in ExportInput, w io.Writer) error {
 	// Только администратор может экспортировать все логи (FR-32)
 	if in.RequesterRole != RoleAdmin {
 		in.Filter.OwnerID = in.RequesterID
 	}
 
-	// Снять лимит пагинации для полного экспорта
 	in.Filter.Limit = 0
 
 	events, err := uc.audit.List(ctx, in.Filter)
@@ -50,7 +48,6 @@ func (uc *ExportAuditUseCase) WriteCSV(ctx context.Context, in ExportInput, w io
 	cw := csv.NewWriter(w)
 	defer cw.Flush()
 
-	// Заголовки (шаг 4, UC-05: колонки таблицы)
 	headers := []string{
 		"ID",
 		"TransferID",
@@ -67,7 +64,6 @@ func (uc *ExportAuditUseCase) WriteCSV(ctx context.Context, in ExportInput, w io
 		return fmt.Errorf("write csv header: %w", err)
 	}
 
-	// Строки данных
 	for _, e := range events {
 		row := []string{
 			e.ID,

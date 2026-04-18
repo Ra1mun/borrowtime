@@ -194,13 +194,14 @@ export async function apiCreateTransfer(
   file: File,
   expiresInHours: number,
   allowedEmails?: string[],
+  maxDownloads?: number,
 ): Promise<{ transfer_id: string; share_url: string; access_token: string }> {
   const formData = new FormData()
   formData.append('file', file)
 
   const expiresAt = new Date(Date.now() + expiresInHours * 3600000).toISOString()
   formData.append('policy_expires_at', expiresAt)
-  formData.append('policy_max_downloads', '1')
+  formData.append('policy_max_downloads', String(maxDownloads ?? 0))
 
   if (allowedEmails) {
     for (const email of allowedEmails) {
@@ -309,4 +310,62 @@ export async function apiUpdateUserRole(id: string, role: string): Promise<void>
     method: 'PUT',
     body: JSON.stringify({ role }),
   })
+}
+
+// ─── Admin Settings ─────────────────────────────────────────────────────────
+
+export type GlobalSettings = {
+  max_file_size_mb: number
+  max_retention_days: number
+  default_retention_h: number
+  default_max_downloads: number
+  updated_at: string
+  updated_by: string
+}
+
+export async function apiGetSettings(): Promise<GlobalSettings> {
+  return request<GlobalSettings>('/admin/settings')
+}
+
+export async function apiUpdateSettings(settings: Omit<GlobalSettings, 'updated_at' | 'updated_by'>): Promise<GlobalSettings> {
+  return request<GlobalSettings>('/admin/settings', {
+    method: 'PUT',
+    body: JSON.stringify({
+      max_file_size_mb: settings.max_file_size_mb,
+      max_retention_days: settings.max_retention_days,
+      default_retention_hours: settings.default_retention_h,
+      default_max_downloads: settings.default_max_downloads,
+    }),
+  })
+}
+
+export async function apiGetStats(): Promise<{
+  active_transfers: number
+  total_storage_bytes: number
+  security_incidents_today: number
+}> {
+  return request('/admin/stats')
+}
+
+export async function apiExportAuditCsv(): Promise<void> {
+  const tokens = getTokens()
+  const headers: Record<string, string> = {}
+  if (tokens?.access_token) {
+    headers['Authorization'] = `Bearer ${tokens.access_token}`
+  }
+
+  const res = await fetch(`${API_BASE}/audit/export`, { headers })
+  if (!res.ok) {
+    throw new ApiError(res.status, 'Export failed')
+  }
+
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `audit_${new Date().toISOString().slice(0, 10)}.csv`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
 }

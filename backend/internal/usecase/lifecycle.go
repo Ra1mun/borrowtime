@@ -17,16 +17,16 @@ import (
 	"github.com/borrowtime/server/internal/storage"
 )
 
-// LifecycleUseCase — UC-04: планировщик, запускается каждые 5 минут
+// LifecycleUseCase
 type LifecycleUseCase struct {
 	transfers repository.TransferRepository
 	audit     repository.AuditRepository
 	store     storage.Provider
-	notifier  Notifier // интерфейс уведомлений (email/push)
+	notifier  Notifier
 	logger    *slog.Logger
 }
 
-// Notifier — интерфейс отправки уведомлений отправителю (шаг 3.4)
+// Notifier — интерфейс отправки уведомлений отправителю
 type Notifier interface {
 	NotifyOwnerFileDeleted(ctx context.Context, ownerID, transferID, fileName string) error
 }
@@ -48,7 +48,6 @@ func NewLifecycle(
 }
 
 // Run запускает цикл планировщика. Блокирует горутину до отмены ctx.
-// Вызывать в отдельной горутине: go lifecycle.Run(ctx)
 func (uc *LifecycleUseCase) Run(ctx context.Context, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -66,16 +65,14 @@ func (uc *LifecycleUseCase) Run(ctx context.Context, interval time.Duration) {
 	}
 }
 
-// runOnce выполняет одну итерацию проверки (шаги 1-5 основного потока UC-04)
+// runOnce выполняет одну итерацию проверки
 func (uc *LifecycleUseCase) runOnce(ctx context.Context) {
-	// Шаг 2: запрашиваем ACTIVE-передачи, которые истекли или исчерпали лимит
 	expired, err := uc.transfers.ListExpiredOrLimitReached(ctx)
 	if err != nil {
 		uc.logger.Error("lifecycle: query failed", "error", err)
 		return
 	}
 
-	// 2а: нет передач для обработки
 	if len(expired) == 0 {
 		uc.logger.Debug("lifecycle: no active transfers to process")
 		return
@@ -87,13 +84,11 @@ func (uc *LifecycleUseCase) runOnce(ctx context.Context) {
 		uc.process(ctx, t)
 	}
 
-	// Шаг 4: фиксируем выполнение задачи
 	uc.logger.Info("lifecycle: run complete", "processed", len(expired))
 }
 
 // process обрабатывает одну истёкшую/исчерпанную передачу
 func (uc *LifecycleUseCase) process(ctx context.Context, t *domain.Transfer) {
-	// Шаг 3.1: определяем новый статус (FR-13, FR-14)
 	newStatus := domain.StatusExpired
 	if t.IsDownloadLimitReached() {
 		newStatus = domain.StatusDownloaded
@@ -104,10 +99,7 @@ func (uc *LifecycleUseCase) process(ctx context.Context, t *domain.Transfer) {
 		return
 	}
 
-	// Шаг 3.2: безвозвратное удаление файла (FR-16)
-	// Идемпотентно: повторный вызов Delete не приведёт к ошибке (архитектурный риск «Идемпотентность»)
 	if err := uc.deleteWithRetry(ctx, t); err != nil {
-		// 3.2а: ошибка удаления — логируем, администратор уведомляется
 		uc.logger.Error("lifecycle: delete failed after retries",
 			"transferID", t.ID,
 			"storagePath", t.StoragePath,
@@ -126,7 +118,6 @@ func (uc *LifecycleUseCase) process(ctx context.Context, t *domain.Transfer) {
 		return
 	}
 
-	// Шаг 3.3: событие AUTO_DELETED в аудит (FR-17)
 	_ = uc.audit.Append(ctx, &domain.AuditLog{
 		ID:         uuid.NewString(),
 		TransferID: t.ID,
@@ -138,7 +129,6 @@ func (uc *LifecycleUseCase) process(ctx context.Context, t *domain.Transfer) {
 		CreatedAt:  time.Now().UTC(),
 	})
 
-	// Шаг 3.4: уведомление отправителя (если включено)
 	if uc.notifier != nil {
 		if err := uc.notifier.NotifyOwnerFileDeleted(ctx, t.OwnerID, t.ID, t.FileName); err != nil {
 			uc.logger.Warn("lifecycle: notification failed", "ownerID", t.OwnerID, "error", err)

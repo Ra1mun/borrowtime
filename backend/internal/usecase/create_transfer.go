@@ -1,7 +1,3 @@
-// UC-02: Создание безопасной передачи
-// Приоритет: Высокий
-// Актер: Отправитель (авторизованный пользователь)
-// FR: 7, 8, 9, 10, 17
 package usecase
 
 import (
@@ -24,7 +20,7 @@ type CreateTransferInput struct {
 	OwnerID       string
 	FileName      string
 	FileSizeBytes int64
-	FileContent   io.Reader    // зашифрованный файл с клиента (FR-8)
+	FileContent   io.Reader
 	Encryption    domain.EncryptionMeta
 	Policy        domain.AccessPolicy
 }
@@ -32,7 +28,7 @@ type CreateTransferInput struct {
 // CreateTransferOutput — результат UC-02
 type CreateTransferOutput struct {
 	TransferID  string
-	AccessToken string // токен для формирования ссылки (FR-10)
+	AccessToken string
 	ShareURL    string
 }
 
@@ -42,7 +38,7 @@ type CreateTransferUseCase struct {
 	audit     repository.AuditRepository
 	store     storage.Provider
 	settings  repository.SettingsRepository
-	baseURL   string // базовый URL сервиса для генерации ссылки
+	baseURL   string
 }
 
 func NewCreateTransfer(
@@ -63,27 +59,21 @@ func NewCreateTransfer(
 
 // Execute выполняет сценарий создания безопасной передачи
 func (uc *CreateTransferUseCase) Execute(ctx context.Context, in CreateTransferInput) (*CreateTransferOutput, error) {
-	// Шаг 6: валидация параметров (FR-5)
 	if err := uc.validate(ctx, in); err != nil {
 		return nil, err
 	}
 
-	// Шаг 7.3 / 8: загрузка зашифрованного файла в хранилище
-	// Шифрование произошло на клиенте через WebCrypto (FR-8, NFR-5).
-	// Сервер получает уже зашифрованные байты.
 	objectKey := fmt.Sprintf("transfers/%s/%s", uuid.NewString(), in.FileName)
 	storagePath, err := uc.store.Upload(ctx, objectKey, in.FileContent, in.FileSizeBytes, "application/octet-stream")
 	if err != nil {
 		return nil, fmt.Errorf("upload to storage: %w", err)
 	}
 
-	// Шаг 10: генерация криптографически стойкого токена (NFR-6, ≥128 бит = 16 байт)
 	token, err := generateSecureToken(32) // 256 бит
 	if err != nil {
 		return nil, fmt.Errorf("generate access token: %w", err)
 	}
 
-	// Шаг 9: создание записи передачи
 	now := time.Now().UTC()
 	transfer := &domain.Transfer{
 		ID:            uuid.NewString(),
@@ -101,15 +91,12 @@ func (uc *CreateTransferUseCase) Execute(ctx context.Context, in CreateTransferI
 	}
 
 	if err := uc.transfers.Create(ctx, transfer); err != nil {
-		// Откат: удаляем загруженный файл при ошибке БД
 		_ = uc.store.Delete(ctx, storagePath)
 		return nil, fmt.Errorf("save transfer: %w", err)
 	}
 
-	// Шаг 12: запись события создания в аудит (FR-17)
 	uc.appendAudit(ctx, transfer.ID, in.OwnerID, domain.EventCreated, in.OwnerID, "", "")
 
-	// Шаг 10: формирование ссылки (FR-10)
 	shareURL := fmt.Sprintf("%s/s/%s", uc.baseURL, token)
 
 	return &CreateTransferOutput{
@@ -119,7 +106,7 @@ func (uc *CreateTransferUseCase) Execute(ctx context.Context, in CreateTransferI
 	}, nil
 }
 
-// validate — шаг 6: проверка входных данных
+// validate проверка входных данных
 func (uc *CreateTransferUseCase) validate(ctx context.Context, in CreateTransferInput) error {
 	if in.FileContent == nil {
 		return domain.ErrNoFile
@@ -130,12 +117,10 @@ func (uc *CreateTransferUseCase) validate(ctx context.Context, in CreateTransfer
 		return fmt.Errorf("get settings: %w", err)
 	}
 
-	// FR-7: размер файла ≤ лимита
 	if in.FileSizeBytes > settings.MaxFileSizeBytes {
 		return domain.ErrFileTooLarge
 	}
 
-	// FR-9: срок должен быть в будущем (если указан)
 	if !in.Policy.ExpiresAt.IsZero() && in.Policy.ExpiresAt.Before(time.Now()) {
 		return domain.ErrInvalidPolicy
 	}
@@ -157,7 +142,7 @@ func (uc *CreateTransferUseCase) appendAudit(ctx context.Context, transferID, ow
 	})
 }
 
-// generateSecureToken генерирует URL-safe токен с энтропией n байт (NFR-6)
+// generateSecureToken генерирует URL-safe токен с энтропией n байт
 func generateSecureToken(n int) (string, error) {
 	b := make([]byte, n)
 	if _, err := rand.Read(b); err != nil {

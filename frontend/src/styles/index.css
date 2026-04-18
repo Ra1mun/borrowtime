@@ -241,6 +241,7 @@ label {
 
 .helperBox,
 .errorText,
+.formError,
 .successText {
   margin-top: 10px;
   padding: 14px 16px;
@@ -253,7 +254,8 @@ label {
   line-height: 1.5;
 }
 
-.errorText {
+.errorText,
+.formError {
   background: rgba(220, 38, 38, 0.1);
   color: #b91c1c;
 }
@@ -261,6 +263,10 @@ label {
 .successText {
   background: rgba(22, 163, 74, 0.1);
   color: #166534;
+}
+
+.downloadError {
+  margin-top: 16px;
 }
 
 .appPage {
@@ -532,6 +538,47 @@ label {
 .auditTitle {
   margin: 12px 0 24px;
   font-size: 48px;
+}
+
+.auditTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.auditTitleRow .auditTitle {
+  margin: 0;
+}
+
+.settingsStatBlock {
+  padding: 16px;
+}
+
+.settingsStatBlock--spaced {
+  margin-top: 16px;
+}
+
+.statsPageTitle {
+  font-size: 48px;
+  margin: 12px 0 0;
+}
+
+.statsLastUpdated {
+  color: #888;
+  margin-bottom: 24px;
+  font-size: 14px;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.statsCardValue {
+  font-size: 28px;
 }
 
 .auditTableCard {

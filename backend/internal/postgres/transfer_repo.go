@@ -21,7 +21,7 @@ func NewTransferRepo(pool *pgxpool.Pool) *TransferRepo {
 	return &TransferRepo{pool: pool}
 }
 
-// Create сохраняет новую передачу (UC-02, шаг 9)
+// Create сохраняет новую передачу
 func (r *TransferRepo) Create(ctx context.Context, t *domain.Transfer) error {
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO transfers (
@@ -46,7 +46,7 @@ func (r *TransferRepo) Create(ctx context.Context, t *domain.Transfer) error {
 	return nil
 }
 
-// GetByToken возвращает передачу по токену доступа (UC-03, шаг 2)
+// GetByToken возвращает передачу по токену доступа
 func (r *TransferRepo) GetByToken(ctx context.Context, token string) (*domain.Transfer, error) {
 	row := r.pool.QueryRow(ctx, `
 		SELECT id, owner_id, file_name, file_size_bytes, storage_path, access_token,
@@ -66,7 +66,7 @@ func (r *TransferRepo) GetByToken(ctx context.Context, token string) (*domain.Tr
 	return t, nil
 }
 
-// GetByID возвращает передачу по ID (UC-06, шаг 3)
+// GetByID возвращает передачу по ID
 func (r *TransferRepo) GetByID(ctx context.Context, id string) (*domain.Transfer, error) {
 	row := r.pool.QueryRow(ctx, `
 		SELECT id, owner_id, file_name, file_size_bytes, storage_path, access_token,
@@ -86,7 +86,7 @@ func (r *TransferRepo) GetByID(ctx context.Context, id string) (*domain.Transfer
 	return t, nil
 }
 
-// ListByOwner возвращает все передачи пользователя (UC-06, FR-24, FR-25)
+// ListByOwner возвращает все передачи пользователя
 func (r *TransferRepo) ListByOwner(ctx context.Context, ownerID string) ([]*domain.Transfer, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT id, owner_id, file_name, file_size_bytes, storage_path, access_token,
@@ -122,7 +122,7 @@ func (r *TransferRepo) ListByRecipient(ctx context.Context, email string) ([]*do
 	return collectTransfers(rows)
 }
 
-// UpdateStatus меняет статус передачи (UC-03, UC-04, UC-06)
+// UpdateStatus меняет статус передачи
 func (r *TransferRepo) UpdateStatus(ctx context.Context, id string, status domain.TransferStatus) error {
 	tag, err := r.pool.Exec(ctx,
 		`UPDATE transfers SET status = $1, updated_at = $2 WHERE id = $3`,
@@ -137,7 +137,7 @@ func (r *TransferRepo) UpdateStatus(ctx context.Context, id string, status domai
 	return nil
 }
 
-// IncrementDownloads атомарно увеличивает счётчик скачиваний (UC-03, шаг 5.3)
+// IncrementDownloads атомарно увеличивает счётчик скачиваний
 func (r *TransferRepo) IncrementDownloads(ctx context.Context, id string) error {
 	_, err := r.pool.Exec(ctx,
 		`UPDATE transfers SET download_count = download_count + 1, updated_at = $1 WHERE id = $2`,
@@ -149,7 +149,7 @@ func (r *TransferRepo) IncrementDownloads(ctx context.Context, id string) error 
 	return nil
 }
 
-// ListExpiredOrLimitReached возвращает ACTIVE-передачи для UC-04 (шаг 2)
+// ListExpiredOrLimitReached возвращает ACTIVE-передачи
 func (r *TransferRepo) ListExpiredOrLimitReached(ctx context.Context) ([]*domain.Transfer, error) {
 	rows, err := r.pool.Query(ctx, `
 		SELECT id, owner_id, file_name, file_size_bytes, storage_path, access_token,
@@ -169,8 +169,6 @@ func (r *TransferRepo) ListExpiredOrLimitReached(ctx context.Context) ([]*domain
 
 	return collectTransfers(rows)
 }
-
-// --- helpers ---
 
 func scanTransfer(row pgx.Row) (*domain.Transfer, error) {
 	var t domain.Transfer

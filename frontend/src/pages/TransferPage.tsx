@@ -9,7 +9,7 @@ export default function TransferPage() {
   const [recipientQuery, setRecipientQuery] = useState("")
   const [selectedReceiver, setSelectedReceiver] = useState<UserListItem | null>(null)
   const [receivers, setReceivers] = useState<UserListItem[]>([])
-  const [token, setToken] = useState("")
+  const [maxDownloads, setMaxDownloads] = useState(0)
   const [file, setFile] = useState<File | null>(null)
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
@@ -52,15 +52,10 @@ export default function TransferPage() {
       return
     }
 
-    if (!token.trim()) {
-      setError("Введите токен для доступа.")
-      return
-    }
-
     try {
-      await apiCreateTransfer(file, hours, [selectedReceiver.email])
+      await apiCreateTransfer(file, hours, [selectedReceiver.email], maxDownloads)
       setMessage(`Файл ${file.name} отправлен пользователю ${selectedReceiver.email}.`)
-      setToken("")
+      setMaxDownloads(0)
       setRecipientQuery("")
       setSelectedReceiver(null)
       setFile(null)
@@ -142,14 +137,14 @@ export default function TransferPage() {
               </div>
 
               <div className="fieldBlock fieldBlock--tightTopFix">
-                <label htmlFor="transfer-token">Токен доступа</label>
+                <label htmlFor="transfer-max-downloads">Макс. скачиваний (0 — без лимита)</label>
                 <input
-                  id="transfer-token"
+                  id="transfer-max-downloads"
                   className="input"
-                  type="text"
-                  value={token}
-                  onChange={(event) => setToken(event.target.value)}
-                  placeholder="Например: TOKEN-123"
+                  type="number"
+                  min="0"
+                  value={maxDownloads}
+                  onChange={(event) => setMaxDownloads(Number(event.target.value))}
                 />
               </div>
             </div>

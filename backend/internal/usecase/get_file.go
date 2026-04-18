@@ -17,7 +17,7 @@ import (
 	"github.com/borrowtime/server/internal/storage"
 )
 
-// GetFileInput — входные данные для UC-03
+// GetFileInput — входные данные
 type GetFileInput struct {
 	Token          string
 	RecipientID    string // пустой = гость
@@ -26,7 +26,7 @@ type GetFileInput struct {
 	UserAgent      string
 }
 
-// GetFileOutput — результат UC-03
+// GetFileOutput — результат
 type GetFileOutput struct {
 	FileName      string
 	FileSizeBytes int64
@@ -34,7 +34,6 @@ type GetFileOutput struct {
 	Content       io.ReadCloser         // поток зашифрованных байт
 }
 
-// GetFileUseCase — UC-03
 type GetFileUseCase struct {
 	transfers repository.TransferRepository
 	audit     repository.AuditRepository

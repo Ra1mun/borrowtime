@@ -48,14 +48,13 @@ type AppConfig struct {
 
 // JWTConfig — параметры JWT (UC-01)
 type JWTConfig struct {
-	Secret        string        // секретный ключ подписи (обязательный)
-	AccessTTL     time.Duration // время жизни access_jwt (по умолчанию 15 мин)
-	RefreshTTL    time.Duration // время жизни refresh_jwt (по умолчанию 7 дней)
-	PartialTTL    time.Duration // время жизни partial_jwt для 2FA (по умолчанию 5 мин)
+	Secret     string
+	AccessTTL  time.Duration
+	RefreshTTL time.Duration
+	PartialTTL time.Duration
 }
 
 // Load читает конфигурацию из переменных окружения.
-// Обязательные переменные: POSTGRES_PASSWORD (или POSTGRES_DSN).
 func Load() (*Config, error) {
 	dsn, err := buildDSN()
 	if err != nil {

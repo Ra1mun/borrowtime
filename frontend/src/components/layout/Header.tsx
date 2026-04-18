@@ -16,10 +16,12 @@ export default function Header() {
         <div className="header__left">
             <div className="header__links">
             <NavLink to="/">Главная</NavLink>
-            <NavLink to="/transfer">Передача данных</NavLink>
-            <NavLink to="/receiver">Получение данных</NavLink>
+            {user && <NavLink to="/transfer">Передача данных</NavLink>}
+            {user && <NavLink to="/receiver">Получение данных</NavLink>}
+            {user && <NavLink to="/history">История передач</NavLink>}
             {user?.role === 'admin' && <NavLink to="/control">Пользователи</NavLink>}
             {user?.role === 'admin' && <NavLink to="/audit">Журнал аудита</NavLink>}
+            {user?.role === 'admin' && <NavLink to="/settings">Настройки</NavLink>}
             {user && <NavLink to="/2fa">2FA</NavLink>}
           </div>
         </div>

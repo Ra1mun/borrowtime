@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import FormCard from "../components/ui/FormCard"
-import { apiListIncomingTransfers, apiDownloadFile } from "../api/client"
+import { apiListIncomingTransfers, apiDownloadFile, ApiError } from "../api/client"
 import type { TransferInfo } from "../api/client"
 
 type PreparedTransferItem = TransferInfo & { isExpired: boolean }
@@ -8,6 +8,7 @@ type PreparedTransferItem = TransferInfo & { isExpired: boolean }
 export default function ReceiverPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [items, setItems] = useState<TransferInfo[]>([])
+  const [downloadError, setDownloadError] = useState("")
 
   useEffect(() => {
     apiListIncomingTransfers()
@@ -31,8 +32,36 @@ export default function ReceiverPage() {
       return
     }
 
-    apiDownloadFile(selectedItem.access_token).catch(() => {
-      alert('Ошибка при скачивании файла')
+    setDownloadError("")
+    apiDownloadFile(selectedItem.access_token).catch((err) => {
+      if (err instanceof ApiError) {
+        switch (err.status) {
+          case 401:
+            setDownloadError("Для скачивания необходима авторизация.")
+            break
+          case 403:
+            if (err.message === "download limit reached") {
+              setDownloadError("Превышен лимит скачиваний для этого файла.")
+            } else if (err.message === "your email is not allowed") {
+              setDownloadError("Ваш email не входит в список разрешённых получателей.")
+            } else if (err.message === "access has been revoked") {
+              setDownloadError("Доступ к файлу был отозван отправителем.")
+            } else {
+              setDownloadError("Доступ запрещён.")
+            }
+            break
+          case 404:
+            setDownloadError("Файл не найден или ссылка недействительна.")
+            break
+          case 410:
+            setDownloadError("Срок действия ссылки истёк.")
+            break
+          default:
+            setDownloadError("Произошла ошибка при скачивании. Попробуйте позже.")
+        }
+      } else {
+        setDownloadError("Произошла ошибка при скачивании. Попробуйте позже.")
+      }
     })
   }
 
@@ -96,6 +125,10 @@ export default function ReceiverPage() {
                 >
                   Скачать
                 </button>
+
+                {downloadError && (
+                  <div className="formError downloadError">{downloadError}</div>
+                )}
               </>
             )}
           </div>

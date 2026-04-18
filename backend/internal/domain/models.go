@@ -17,12 +17,12 @@ const (
 type User struct {
 	ID             string
 	Email          string
-	PasswordHash   string // Argon2id (FR-28)
+	PasswordHash   string
 	Role           UserRole
-	TOTPSecret     string     // пусто пока 2FA не настроена
-	TOTPEnabled    bool       // FR-2
-	FailedAttempts int        // счётчик неудачных попыток (5а)
-	LockedUntil    *time.Time // nil = не заблокирован
+	TOTPSecret     string
+	TOTPEnabled    bool
+	FailedAttempts int
+	LockedUntil    *time.Time
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
@@ -68,28 +68,28 @@ const (
 
 // AccessPolicy — политика доступа к передаче (FR-9)
 type AccessPolicy struct {
-	ExpiresAt     time.Time // срок действия ссылки
-	MaxDownloads  int       // 0 = без ограничений
-	RequireAuth   bool      // требует ли получатель аутентификации
-	AllowedEmails []string  // список разрешённых email (опционально)
+	ExpiresAt     time.Time
+	MaxDownloads  int
+	RequireAuth   bool
+	AllowedEmails []string
 }
 
 // EncryptionMeta — метаданные клиентского шифрования (FR-8)
 type EncryptionMeta struct {
-	Algorithm string // "AES-GCM"
-	IV        string // base64
-	Tag       string // base64
-	KeyHint   string // публичная часть (не сам ключ — ключ не покидает браузер, NFR-5)
+	Algorithm string
+	IV        string
+	Tag       string
+	KeyHint   string
 }
 
 // Transfer — основная сущность «безопасная передача» (Секрет)
 type Transfer struct {
 	ID            string
-	OwnerID       string // ID пользователя-отправителя
+	OwnerID       string
 	FileName      string
 	FileSizeBytes int64
-	StoragePath   string // путь в хранилище (MinIO/S3)
-	AccessToken   string // криптографически стойкий токен (NFR-6, ≥128 бит)
+	StoragePath   string
+	AccessToken   string
 	Policy        AccessPolicy
 	Encryption    EncryptionMeta
 	Status        TransferStatus
@@ -114,7 +114,7 @@ type AuditLog struct {
 	TransferID string
 	OwnerID    string
 	EventType  AuditEventType
-	ActorID    string // пользователь, гость или "system"
+	ActorID    string
 	IPAddress  string
 	UserAgent  string
 	Success    bool
@@ -124,9 +124,9 @@ type AuditLog struct {
 
 // GlobalSettings — глобальные настройки системы (FR-22)
 type GlobalSettings struct {
-	MaxFileSizeBytes    int64         // максимальный размер файла
-	MaxRetentionPeriod  time.Duration // максимальный срок хранения
-	DefaultRetention    time.Duration // срок по умолчанию
+	MaxFileSizeBytes    int64
+	MaxRetentionPeriod  time.Duration
+	DefaultRetention    time.Duration
 	DefaultMaxDownloads int
 	UpdatedAt           time.Time
 	UpdatedBy           string
@@ -135,8 +135,8 @@ type GlobalSettings struct {
 // AuditFilter — параметры фильтрации журнала аудита (UC-05)
 type AuditFilter struct {
 	TransferID string
-	OwnerID    string         // пустой = все (только для админа)
-	EventType  AuditEventType // пустой = все типы
+	OwnerID    string
+	EventType  AuditEventType
 	From       time.Time
 	To         time.Time
 	Limit      int

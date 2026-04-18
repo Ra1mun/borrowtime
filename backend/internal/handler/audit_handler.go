@@ -24,10 +24,8 @@ func NewAuditHandler(auditUC *usecase.AuditLogUseCase, exportUC *usecase.ExportA
 
 // RegisterRoutes регистрирует маршруты
 func (h *AuditHandler) RegisterRoutes(r chi.Router) {
-	// UC-05: просмотр журнала (FR-18, FR-19)
 	r.Get("/audit", h.List)
 
-	// UC-07: экспорт в CSV (FR-20)
 	r.Get("/audit/export", h.ExportCSV)
 }
 
@@ -111,7 +109,6 @@ func (h *AuditHandler) ExportCSV(w http.ResponseWriter, r *http.Request) {
 
 	role := usecase.UserRole(userRoleFromCtx(r.Context()))
 
-	// Только администратор может экспортировать все логи (FR-32)
 	if role != usecase.RoleAdmin {
 		respondError(w, http.StatusForbidden, "admin role required for full export")
 		return

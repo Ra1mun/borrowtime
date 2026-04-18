@@ -19,7 +19,7 @@ func NewSettingsRepo(pool *pgxpool.Pool) *SettingsRepo {
 	return &SettingsRepo{pool: pool}
 }
 
-// Get возвращает текущие глобальные настройки (UC-08)
+// Get возвращает текущие глобальные настройки
 func (r *SettingsRepo) Get(ctx context.Context) (*domain.GlobalSettings, error) {
 	var s domain.GlobalSettings
 	var maxRetentionSecs, defaultRetentionSecs int64
@@ -46,8 +46,7 @@ func (r *SettingsRepo) Get(ctx context.Context) (*domain.GlobalSettings, error) 
 	return &s, nil
 }
 
-// Save сохраняет глобальные настройки (UC-08, FR-22)
-// Всегда обновляет единственную строку (singleton pattern)
+// Save сохраняет глобальные настройки
 func (r *SettingsRepo) Save(ctx context.Context, s *domain.GlobalSettings) error {
 	_, err := r.pool.Exec(ctx, `
 		INSERT INTO global_settings (
