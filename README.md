@@ -53,9 +53,6 @@
 # Клонировать репозиторий
 git clone <url> && cd BorrowTime
 
-# Скопировать пример конфигурации
-cp .env.example .env
-
 # Запустить все сервисы
 docker compose up --build -d
 ```
